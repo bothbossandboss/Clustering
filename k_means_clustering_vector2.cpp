@@ -36,7 +36,7 @@ double elementSimilarity(vector<double> x, vector<double> y){
 /**
  * 2つのクラスタが等しいか
  */
-bool isEqual(vector< vector<double> > &previous, vector< vector<double> > &next){
+bool isEqual(vector< vector<double> > previous, vector< vector<double> > next){
 	if(previous.size() != next.size()) return false;
 	sort(previous.begin(), previous.end());
 	sort(next.begin(), next.end());
@@ -148,6 +148,13 @@ int main(int argc, char *argv[]){
 	/**
 	 * 結果出力
 	 */
+	for(int l=0;l<K;l++){
+		printf("cluster%d : mu = (", l);
+		for(int j=0;j<VECTOR_DIMENSION;j++){
+			printf("%f ", mu[l].at(j));
+		}
+		printf(")\n");
+	}
 	for(int i=0;i<previousCluster[0].size();i++){
 		for (int j=0;j<VECTOR_DIMENSION;++j){
 			fprintf(output1, "%f ", previousCluster[0].at(i).at(j));
