@@ -20,6 +20,7 @@
 #define END_NUM 2
 
 using namespace std;
+
 /**
  * 要素同士の距離
  * ユークリッド距離を採用。
@@ -113,6 +114,9 @@ void agglomerative(vector< vector< vector<double> > > &clusters, int *I, int *J,
 }
 
 int main(int argc, char *argv[]){
+	/**
+	 * データ準備
+	 */
 	char inputName[128];
 	FILE *input, *output1, *output2;
 	cout << "input file name : ";
@@ -128,9 +132,21 @@ int main(int argc, char *argv[]){
 		perror("open output file");
 		return -1;
 	}
-
-	vector< vector<double> > data;
 	//ファイルから読み取る。
+	vector< vector<double> > data;
+	double buf[VECTOR_DIMENSION];
+	while( fscanf(input,"%lf %lf", &buf[0], &buf[1]) != EOF ){	//ファイルが終わるまで読み込む
+		vector<double> v(VECTOR_DIMENSION);
+		for(int i=0;i<VECTOR_DIMENSION;i++){
+			v.at(i) = buf[i];
+		}
+		data.push_back(v);
+	}
+	printf("data size = %d\n", (int)data.size());
+
+	/**
+	 * クラスタリング
+	 */
 	vector< vector< vector<double> > > clusters;
 	for(int c=0;c<data.size();c++){
 		vector< vector<double> > v = vector< vector<double> >(1, vector<double>(VECTOR_DIMENSION, 0.0));
@@ -138,6 +154,7 @@ int main(int argc, char *argv[]){
 		clusters.push_back(v);
 	}
 	//クラスタリング開始。クラスタ数が2になったら終了。
+	int turn = 0;
 	while(clusters.size() > END_NUM){
 		int I, J;
 		I = J = -1;
@@ -145,19 +162,28 @@ int main(int argc, char *argv[]){
 		vector< vector<double> > tmp = clusters.at(J);
 		clusters.at(I).insert(clusters.at(I).end(), tmp.begin(), tmp.end());
 		clusters.erase(clusters.begin() + J);
+		turn++;
+		if(turn % 10 == 0){
+			printf("%d clusters\n", (int)clusters.size());
+		}
 	}
+
+	/**
+	 * 結果出力
+	 */
 	for(int i=0;i<clusters.at(0).size();i++){
 		for (int j=0;j<VECTOR_DIMENSION;++j){
 			fprintf(output1, "%f ", clusters.at(0).at(i).at(j));
 		}
-		printf("\n");
+		fprintf(output1, "\n");
 	}
 	for(int i=0;i<clusters.at(1).size();i++){
 		for (int j=0;j<VECTOR_DIMENSION;++j){
 			fprintf(output2, "%f ", clusters.at(1).at(i).at(j));
 		}
-		printf("\n");
+		fprintf(output2, "\n");
 	}
+
 	fclose(input);
 	fclose(output1);
 	fclose(output2);
