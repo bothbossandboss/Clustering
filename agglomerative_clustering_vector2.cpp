@@ -11,8 +11,8 @@
 #include <vector>
 #include <assert.h>
 
-#define OUTPUT1 "cluster1.dat"
-#define OUTPUT2 "cluster2.dat"
+#define OUTPUT1 "result/cluster1.dat"
+#define OUTPUT2 "result/cluster2.dat"
 #define SINGLE 1
 #define COMPLETE 2
 #define CENTROID 3

@@ -18,7 +18,7 @@
 #include <vector>
 #include <algorithm>
 
-#define OUTPUT "gauss.dat"
+#define OUTPUT "result/gauss.dat"
 #define MAX_POINT 2000
 #define C1_RATE 3
 #define GMM_NUM 2

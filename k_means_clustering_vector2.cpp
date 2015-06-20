@@ -13,8 +13,8 @@
 #include <vector>
 #include <algorithm>
 
-#define OUTPUT1 "cluster1_k_means.dat"
-#define OUTPUT2 "cluster2_k_means.dat"
+#define OUTPUT1 "result/cluster1_k_means.dat"
+#define OUTPUT2 "result/cluster2_k_means.dat"
 #define VECTOR_DIMENSION 2
 #define K 2
 
