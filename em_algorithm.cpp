@@ -23,34 +23,6 @@
 using namespace std;
 
 /**
- * 一様分布(出力確率が全て1)で0〜1の乱数を出力
- */
-double uniformRand(){
-	return ( (double)rand() + 1.0 ) / ( (double)RAND_MAX + 2.0 );
-}
-/**
- * 平均mu、標準偏差sigmaの正規分布に従って乱数を出力
- * cos型、sin型両方用意したが、どちらを使っても構わない。
- */
-double gaussRandCos(double mu, double sigma){
-	double z1 = sqrt( -2.0 * log(uniformRand()) ) * cos( 2.0 * M_PI * uniformRand() );
-	return sigma * z1 + mu;
-}
-
-double gaussRandSin(double mu, double sigma){
-	double z2 = sqrt( -2.0 * log(uniformRand()) ) * sin( 2.0 * M_PI * uniformRand() );
-	return sigma * z2 + mu;
-}
-
-vector<double> generateGaussVector(double mu, double sigma, int size){
-	vector<double> v;
-	for(int i=0;i<size;i++){
-		v.push_back(gaussRandCos(mu, sigma));
-	}
-	return v;
-}
-
-/**
  * 2つのvector<double>の距離の2乗
  */
 double distance2(vector<double> &x, vector<double> &y){
