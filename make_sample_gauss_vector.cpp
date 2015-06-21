@@ -94,13 +94,11 @@ int main(int argc, char *argv[]){
 	sum = 0;
 	for(int i=0;i<K;i++){
 		int num = dataSize * dataRate[i] / 100;
-		printf("%d\n", num);
 		for(int l=0;l<num;l++){
 			data.push_back(generateGaussVector(mu[i], sigma[i], vectorDimension));
 		}
 		count[i] = num;
 		sum += num;
-		printf("end\n");
 	}
 	if(sum < dataSize){
 		int remain = dataSize - sum;
