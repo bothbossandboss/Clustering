@@ -5,8 +5,9 @@
  * int K : ガウス分布の個数
  * int vectorDimension : データのベクトルの次元数
  * int dataSize : データ数
- * vector<double> mu[K] : 各ガウス分布の平均ベクトル
- * vector< vector<double> > sigma[K] : 各ガウス分布の分散共分散行列
+ * double dataRate[K] : 各ガウス分布の生成率(%)
+ * double mu[K][vectorDimension] : 各ガウス分布の平均ベクトル
+ * double sigma[K][vectorDimension] : 各ガウス分布における、各次元の分散(共分散は0)
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,10 +18,7 @@
 #include <vector>
 #include <algorithm>
 
-#define OUTPUT1 "result/cluster1_k_means.dat"
-#define OUTPUT2 "result/cluster2_k_means.dat"
-#define VECTOR_DIMENSION 2
-#define K 2
+#define OUTPUT "result/gauss.dat"
 
 using namespace std;
 /**
@@ -52,23 +50,36 @@ vector<double> generateGaussVector(double mu, double sigma, int size){
 }
 int main(int argc, char *argv[]){
 	/**
-	 * データ列を生成
+	 * パラメータ読み込み
 	 */
-	double mu1, mu2, sigma1, sigma2;
-	cout << "mu1 = ";
-	cin >> mu1;
-	cout << "mu2 = ";
-	cin >> mu2;
-	cout << "sigma1 = ";
-	cin >> sigma1;
-	cout << "sigma2 = ";
-	cin >> sigma2;
-	printf("---------\nanswer\n---------\n");
-	printf("<cluster1>\nmu = (%4.2f %4.2f )", mu1, mu1);
-	printf("sigma\n%4.2f 0.0\n0.0 %4.2f\n\n", sigma1, sigma1);
-	printf("<cluster2>\nmu = (%4.2f %4.2f )", mu2, mu2);
-	printf("sigma\n%4.2f 0.0\n0.0 %4.2f\n", sigma2, sigma2);
-
+	int K;
+	int vectorDimension;
+	int dataSize;
+	cout << "gauss num K = ";
+	cin >> K;
+	cout << "vector dimension = ";
+	cin >> vectorDimension;
+	cout << "data size = ";
+	cin >> dataSize;
+	double mu[K][vectorDimension];
+	double sigma[K][vectorDimension];
+	double dataRate[K];
+	for(int i=0;i<K;i++){
+		printf("<cluster%d>\n", i);
+		for(int j=0;j<vectorDimension;j++){
+			cout << "mu[" << j << "] = ";
+			cin >> mu[i][j];
+		}
+		for(int j=0;j<vectorDimension;j++){
+			cout << "sigma[" << j << "] = ";
+			cin >> sigma[i][j];
+		}
+		cout << "data rate(%%) = ";
+		cin >> dataRate[i];
+	}
+	/**
+	 * データ列の生成
+	 */
 	FILE *output;
 	if( (output = fopen(OUTPUT, "w")) == NULL ){
 		perror("open output file");
@@ -76,21 +87,16 @@ int main(int argc, char *argv[]){
 	}
 	srand((unsigned int)time(NULL));
 	vector< vector<double> > data;
-	int c1, c2;
-	c1 = c2 = 0;
-	for(int i=0;i<MAX_POINT;i++){
-		int tmp = rand() % 10; //uniformRand()の時とあまり変わらなかったため、こちらを採用している。
-		if(tmp < C1_RATE){
-			data.push_back(generateGaussVector(mu1, sigma1, VECTOR_DIMENSION));
-			c1++;
-		}else{
-			data.push_back(generateGaussVector(mu2, sigma2, VECTOR_DIMENSION));
-			c2++;
-		}
+	int count[K];
+	for(int i=0;i<K;i++) count[i] = 0;
+	for(int i=0;i<dataSize;i++){
+		int tmp = rand() % 100;
 	}
 	for(int i=0;i<data.size();i++){
-		fprintf(output, "%f %f\n", data[i].at(0), data[i].at(1));
+		for(int j=0;j<vectorDimension;j++){
+			fprintf(output, "%f ", data.at(i).at(j));
+		}
+		fprintf(output, "\n");
 	}
-	printf("---------\ncluster1 : %4.2f%%, cluster2 : %4.2f%%\n", (double)c1/MAX_POINT, (double)c2/MAX_POINT);
 	return 0;
 }
