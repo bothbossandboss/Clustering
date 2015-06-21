@@ -119,7 +119,7 @@ int main(int argc, char *argv[]){
 	 * データ準備
 	 */
 	char inputName[128];
-	FILE *input, *output1, *output2;
+	FILE *input;
 	int gmmNum, vectorDimension;
 	cout << "input file name : ";
 	cin >> inputName;
@@ -133,13 +133,22 @@ int main(int argc, char *argv[]){
 	}
 	//ファイルから読み取る。
 	vector< vector<double> > data;
-	double buf[vectorDimension];
-	while( fscanf(input,"%lf %lf", &buf[0], &buf[1]) != EOF ){	//ファイルが終わるまで読み込む
-		vector<double> v(vectorDimension);
-		for(int i=0;i<vectorDimension;i++){
-			v.at(i) = buf[i];
+	double buf;
+	int dim = 0;
+	vector<double> v(vectorDimension);
+	while( fscanf(input, "%lf", &buf) != EOF ){	//ファイルが終わるまで読み込む。
+		if(dim == vectorDimension){
+			data.push_back(v);
+			dim = 0;
 		}
-		data.push_back(v);
+		v.at(dim) = buf;
+		dim++;
+	}
+	for(int i=(int)data.size()-10;i<(int)data.size();i++){
+		for(int j=0;j<vectorDimension;j++){
+			printf("%4.2f ", data.at(i).at(j));
+		}
+		printf("\n");
 	}
 	printf("data size = %d\n", (int)data.size());
 
@@ -174,19 +183,31 @@ int main(int argc, char *argv[]){
 		}
 	}
 	//パラメータ
-	vector<double> mu[gmmNum];
-	vector< vector<double> > sigma[gmmNum];
+	vector< vector<double> > mu;
+	mu = vector< vector<double> >(gmmNum, vector<double>(vectorDimension, 0.0));
+	vector< vector< vector<double> > > sigma;
+	sigma = vector< vector< vector<double> > >(gmmNum, vector< vector<double> >(vectorDimension, vector<double>(vectorDimension, 0.0)));
 	double pc[gmmNum];
-	for(int i=0;i<gmmNum;i++){ //メモリ確保用の初期化。GMMの初期化は後で考える。
-		mu[i] = uniqSigma.at(i);
-		sigma[i] = uniqSigma;
+	for(int i=0;i<gmmNum;i++){
+		if(i > vectorDimension - 1){
+			int target1 = rand() % vectorDimension;
+			int target2 = rand() % vectorDimension;
+			for(int j=0;j<vectorDimension;j++){
+				mu.at(i).at(j) = uniqSigma.at(target1).at(j) + uniqSigma.at(target2).at(j);
+			}
+		}else{
+			mu.at(i) = uniqSigma.at(i);
+		}
+		sigma.at(i) = uniqSigma;
 		pc[i] = 1.0 / (double)gmmNum; //初期値は当確率。
 	}
 	//初期値を出力
 	double Q = 0.0;
 	int turn = 0;
+	printf("\ncaluculating...\n");
 	while(1){
-		vector<double> pcGivenX[gmmNum]; //vectorのサイズはデータ数分。
+		//vectorであるpcGivenXのサイズはデータ数分。
+		vector< vector<double> > pcGivenX = vector< vector<double> >(gmmNum, vector<double>(data.size(), 0.0));
 		for(int c=0;c<gmmNum;c++){
 			pcGivenX[c] = vector<double>(data.size(), 0.0);
 		}
