@@ -18,11 +18,6 @@
 #include <vector>
 #include <algorithm>
 
-#define OUTPUT "result/gauss.dat"
-#define MAX_POINT 2000
-#define C1_RATE 3
-#define GMM_NUM 2
-#define VECTOR_DIMENSION 2
 #define EPSILON 0.000001
 
 using namespace std;
@@ -147,143 +142,131 @@ double pxGivenC(vector<double> &x, vector<double> &mu, vector< vector<double> > 
 }
 
 int main(int argc, char *argv[]){
+	srand((unsigned int)time(NULL));
 	/**
-	 * データ列を生成
+	 * データ準備
 	 */
-	double mu1, mu2, sigma1, sigma2;
-	cout << "mu1 = ";
-	cin >> mu1;
-	cout << "mu2 = ";
-	cin >> mu2;
-	cout << "sigma1 = ";
-	cin >> sigma1;
-	cout << "sigma2 = ";
-	cin >> sigma2;
-	printf("---------\nanswer\n---------\n");
-	printf("<cluster1>\nmu = (%4.2f %4.2f )", mu1, mu1);
-	printf("sigma\n%4.2f 0.0\n0.0 %4.2f\n\n", sigma1, sigma1);
-	printf("<cluster2>\nmu = (%4.2f %4.2f )", mu2, mu2);
-	printf("sigma\n%4.2f 0.0\n0.0 %4.2f\n", sigma2, sigma2);
-
-	FILE *output;
-	if( (output = fopen(OUTPUT, "w")) == NULL ){
-		perror("open output file");
+	char inputName[128];
+	FILE *input, *output1, *output2;
+	int gmmNum, vectorDimension;
+	cout << "input file name : ";
+	cin >> inputName;
+	cout << "gauss num = ";
+	cin >> gmmNum;
+	cout << "vector dimension = ";
+	cin >> vectorDimension;
+	if( (input = fopen(inputName, "r")) == NULL ){
+		perror("open input file");
 		return -1;
 	}
-	srand((unsigned int)time(NULL));
+	//ファイルから読み取る。
 	vector< vector<double> > data;
-	int c1, c2;
-	c1 = c2 = 0;
-	for(int i=0;i<MAX_POINT;i++){
-		int tmp = rand() % 10; //uniformRand()の時とあまり変わらなかったため、こちらを採用している。
-		if(tmp < C1_RATE){
-			data.push_back(generateGaussVector(mu1, sigma1, VECTOR_DIMENSION));
-			c1++;
-		}else{
-			data.push_back(generateGaussVector(mu2, sigma2, VECTOR_DIMENSION));
-			c2++;
+	double buf[vectorDimension];
+	while( fscanf(input,"%lf %lf", &buf[0], &buf[1]) != EOF ){	//ファイルが終わるまで読み込む
+		vector<double> v(vectorDimension);
+		for(int i=0;i<vectorDimension;i++){
+			v.at(i) = buf[i];
 		}
+		data.push_back(v);
 	}
-	for(int i=0;i<data.size();i++){
-		fprintf(output, "%f %f\n", data[i].at(0), data[i].at(1));
-	}
-	printf("---------\ncluster1 : %4.2f%%, cluster2 : %4.2f%%\n", (double)c1/MAX_POINT, (double)c2/MAX_POINT);
+	printf("data size = %d\n", (int)data.size());
 
 	/**
 	 * EMアルゴリズムでパラメータを推定
 	 * 今回2次元データなので、正規分布の確率に分散共分散行列が出てくることに注意。
 	 * GMMの混合数は2。
 	 */
-	vector<double> uniqMu = vector<double>(VECTOR_DIMENSION, 0.0);
+	vector<double> uniqMu = vector<double>(vectorDimension, 0.0);
 	vector< vector<double> > uniqSigma;
-	uniqSigma = vector< vector<double> >(VECTOR_DIMENSION, vector<double>(VECTOR_DIMENSION, 0.0));
-	for(int i=0;i<MAX_POINT;i++){
-		for(int j=0;j<VECTOR_DIMENSION;j++){
+	uniqSigma = vector< vector<double> >(vectorDimension, vector<double>(vectorDimension, 0.0));
+	for(int i=0;i<data.size();i++){
+		for(int j=0;j<vectorDimension;j++){
 			uniqMu.at(j) += data.at(i).at(j);
 		}
 	}
-	for(int j=0;j<VECTOR_DIMENSION;j++){
-		uniqMu.at(j) /= MAX_POINT;
+	for(int j=0;j<vectorDimension;j++){
+		uniqMu.at(j) /= data.size();
 	}
-	for(int i=0;i<MAX_POINT;i++){
-		for(int k=0;k<VECTOR_DIMENSION;k++){
-			for(int l=0;l<VECTOR_DIMENSION;l++){
+	for(int i=0;i<data.size();i++){
+		for(int k=0;k<vectorDimension;k++){
+			for(int l=0;l<vectorDimension;l++){
 				double yk = data.at(i).at(k) - uniqMu.at(k);
 				double yl = data.at(i).at(l) - uniqMu.at(l);
 				uniqSigma.at(k).at(l) += yk * yl;
 			}
 		}
 	}
-	for(int k=0;k<VECTOR_DIMENSION;k++){
-		for(int l=0;l<VECTOR_DIMENSION;l++){
-			uniqSigma.at(k).at(l) /= MAX_POINT;
+	for(int k=0;k<vectorDimension;k++){
+		for(int l=0;l<vectorDimension;l++){
+			uniqSigma.at(k).at(l) /= data.size();
 		}
 	}
 	//パラメータ
-	vector<double> mu[GMM_NUM];
-	vector< vector<double> > sigma[GMM_NUM];
-	double pc[GMM_NUM] = {0.5, 0.5}; //初期値は当確率。
-	for(int i=0;i<GMM_NUM;i++){ //メモリ確保用の初期化。GMMの初期化は後で考える。
+	vector<double> mu[gmmNum];
+	vector< vector<double> > sigma[gmmNum];
+	double pc[gmmNum];
+	for(int i=0;i<gmmNum;i++){ //メモリ確保用の初期化。GMMの初期化は後で考える。
 		mu[i] = uniqSigma.at(i);
 		sigma[i] = uniqSigma;
+		pc[i] = 1.0 / (double)gmmNum; //初期値は当確率。
 	}
 	//初期値を出力
 	double Q = 0.0;
 	int turn = 0;
 	while(1){
-		vector<double> pcGivenX[GMM_NUM]; //vectorのサイズはデータ数分。
-		for(int c=0;c<GMM_NUM;c++){
-			pcGivenX[c] = vector<double>(MAX_POINT, 0.0);
+		vector<double> pcGivenX[gmmNum]; //vectorのサイズはデータ数分。
+		for(int c=0;c<gmmNum;c++){
+			pcGivenX[c] = vector<double>(data.size(), 0.0);
 		}
 		//Eステップ
-		for(int i=0;i<MAX_POINT;i++){
-			double nowPxGivenC[GMM_NUM];
+		for(int i=0;i<data.size();i++){
+			double nowPxGivenC[gmmNum];
 			double sum = 0.0;
-			for(int c=0;c<GMM_NUM;c++){
+			for(int c=0;c<gmmNum;c++){
 				nowPxGivenC[c] = pxGivenC(data.at(i), mu[c], sigma[c]);
 				sum += nowPxGivenC[c];
 			}
 			//P(c|x;theta')を計算
-			for(int c=0;c<GMM_NUM;c++){
+			for(int c=0;c<gmmNum;c++){
 				pcGivenX[c].at(i) = nowPxGivenC[c] / sum;
 			}
 		}
 		//Mステップ
-		double Nc[GMM_NUM]; //sum( P(c|x;theta') )
+		double Nc[gmmNum]; //sum( P(c|x;theta') )
 		double SumAll = 0.0;
-		for(int c=0;c<GMM_NUM;c++){
+		for(int c=0;c<gmmNum;c++){
 			Nc[c] = 0.0;
-			for(int i=0;i<MAX_POINT;i++){
+			for(int i=0;i<data.size();i++){
 				Nc[c] += pcGivenX[c].at(i);
 			}
 			SumAll += Nc[c];
 		}
-		for(int c=0;c<GMM_NUM;c++){
-			vector<double> nextMu = vector<double>(VECTOR_DIMENSION, 0.0);
+		for(int c=0;c<gmmNum;c++){
+			vector<double> nextMu = vector<double>(vectorDimension, 0.0);
 			vector< vector<double> > nextSigma;
-			nextSigma = vector< vector<double> >(VECTOR_DIMENSION, vector<double>(VECTOR_DIMENSION, 0.0));
+			nextSigma = vector< vector<double> >(vectorDimension, vector<double>(vectorDimension, 0.0));
 			//平均ベクトルの更新
-			for(int i=0;i<MAX_POINT;i++){
-				for(int l=0;l<VECTOR_DIMENSION;l++){
+			for(int i=0;i<data.size();i++){
+				for(int l=0;l<vectorDimension;l++){
 					nextMu.at(l) += pcGivenX[c].at(i) * data.at(i).at(l);
 				}
 			}
-			for(int l=0;l<VECTOR_DIMENSION;l++){
+			for(int l=0;l<vectorDimension;l++){
 				nextMu.at(l) /= Nc[c];
 			}
 			mu[c] = nextMu;
 			//分散共分散行列の更新
-			for(int i=0;i<MAX_POINT;i++){
-				for(int k=0;k<VECTOR_DIMENSION;k++){
-					for(int l=0;l<VECTOR_DIMENSION;l++){
+			for(int i=0;i<data.size();i++){
+				for(int k=0;k<vectorDimension;k++){
+					for(int l=0;l<vectorDimension;l++){
 						double yk = data.at(i).at(k) - nextMu.at(k);
 						double yl = data.at(i).at(l) - nextMu.at(l);
 						nextSigma.at(k).at(l) += pcGivenX[c].at(i) * yk * yl;
 					}
 				}
 			}
-			for(int k=0;k<VECTOR_DIMENSION;k++){
-				for(int l=0;l<VECTOR_DIMENSION;l++){
+			for(int k=0;k<vectorDimension;k++){
+				for(int l=0;l<vectorDimension;l++){
 					nextSigma.at(k).at(l) /= Nc[c];
 				}
 			}
@@ -293,8 +276,8 @@ int main(int argc, char *argv[]){
 		}
 		//Q(theta;theta')->maxを解くことになるが、混合ガウス分布を仮定しているので、それぞれの更新式が導かれる。
 		double nextQ = 0.0;
-		for(int i=0;i<MAX_POINT;i++){
-			for(int c=0;c<GMM_NUM;c++){
+		for(int i=0;i<data.size();i++){
+			for(int c=0;c<gmmNum;c++){
 				nextQ += pcGivenX[c].at(i) * log( pc[c] * pxGivenC(data.at(i), mu[c], sigma[c]) );
 			}
 		}
@@ -304,14 +287,14 @@ int main(int argc, char *argv[]){
 		turn++;
 		if(turn % 100 == 0){
 			printf("\n<turn = %d>\n", turn);
-			for(int c=0;c<GMM_NUM;c++){
+			for(int c=0;c<gmmNum;c++){
 				printf("\ncluster%d\nmu = (", c + 1);
-				for(int l=0;l<VECTOR_DIMENSION;l++){
+				for(int l=0;l<vectorDimension;l++){
 					printf("%4.2f ", mu[c].at(l));
 				}
 				printf(")\nsigma\n");
-				for(int k=0;k<VECTOR_DIMENSION;k++){
-					for(int l=0;l<VECTOR_DIMENSION;l++){
+				for(int k=0;k<vectorDimension;k++){
+					for(int l=0;l<vectorDimension;l++){
 						printf("%4.2f ", sigma[c].at(k).at(l));
 					}
 					printf("\n");
@@ -321,14 +304,14 @@ int main(int argc, char *argv[]){
 	}
 	//結果の出力
 	printf("---------\nestimated\n---------");
-	for(int c=0;c<GMM_NUM;c++){
+	for(int c=0;c<gmmNum;c++){
 		printf("\n<cluster%d>\nmu = (", c + 1);
-		for(int l=0;l<VECTOR_DIMENSION;l++){
+		for(int l=0;l<vectorDimension;l++){
 			printf("%4.2f ", mu[c].at(l));
 		}
 		printf(")\nsigma\n");
-		for(int k=0;k<VECTOR_DIMENSION;k++){
-			for(int l=0;l<VECTOR_DIMENSION;l++){
+		for(int k=0;k<vectorDimension;k++){
+			for(int l=0;l<vectorDimension;l++){
 				printf("%4.2f ", sigma[c].at(k).at(l));
 			}
 			printf("\n");
