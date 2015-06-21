@@ -5,7 +5,7 @@
  * int K : ガウス分布の個数
  * int vectorDimension : データのベクトルの次元数
  * int dataSize : データ数
- * double dataRate[K] : 各ガウス分布の生成率(%)
+ * int dataRate[K] : 各ガウス分布の生成率(%)
  * double mu[K][vectorDimension] : 各ガウス分布の平均ベクトル
  * double sigma[K][vectorDimension] : 各ガウス分布における、各次元の分散(共分散は0)
  */
@@ -41,10 +41,10 @@ double gaussRandSin(double mu, double sigma){
 	return sigma * z2 + mu;
 }
 
-vector<double> generateGaussVector(double mu, double sigma, int size){
+vector<double> generateGaussVector(double mu[], double sigma[], int size){
 	vector<double> v;
 	for(int i=0;i<size;i++){
-		v.push_back(gaussRandCos(mu, sigma));
+		v.push_back(gaussRandCos(mu[i], sigma[i]));
 	}
 	return v;
 }
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]){
 	cin >> dataSize;
 	double mu[K][vectorDimension];
 	double sigma[K][vectorDimension];
-	double dataRate[K];
+	int dataRate[K];
 	for(int i=0;i<K;i++){
 		printf("<cluster%d>\n", i);
 		for(int j=0;j<vectorDimension;j++){
@@ -77,6 +77,9 @@ int main(int argc, char *argv[]){
 		cout << "data rate(%%) = ";
 		cin >> dataRate[i];
 	}
+	int sum = 0;
+	for(int i=0;i<K;i++) sum += dataRate[i];
+	assert(sum == 100);
 	/**
 	 * データ列の生成
 	 */
@@ -88,10 +91,32 @@ int main(int argc, char *argv[]){
 	srand((unsigned int)time(NULL));
 	vector< vector<double> > data;
 	int count[K];
-	for(int i=0;i<K;i++) count[i] = 0;
-	for(int i=0;i<dataSize;i++){
-		int tmp = rand() % 100;
+	sum = 0;
+	for(int i=0;i<K;i++){
+		int num = dataSize * dataRate[i] / 100;
+		printf("%d\n", num);
+		for(int l=0;l<num;l++){
+			data.push_back(generateGaussVector(mu[i], sigma[i], vectorDimension));
+		}
+		count[i] = num;
+		sum += num;
+		printf("end\n");
 	}
+	if(sum < dataSize){
+		int remain = dataSize - sum;
+		for(int i=0;i<remain;i++){
+			int target = rand() % K;
+			data.push_back(generateGaussVector(mu[target], sigma[target], vectorDimension));
+		}
+	}else if(sum > dataSize){
+		int extra = sum - dataSize;
+		for(int i=0;i<extra;i++){
+			int target = rand() % data.size();
+			data.erase(data.begin() + target);
+		}
+	}
+	assert(data.size() == dataSize);
+
 	for(int i=0;i<data.size();i++){
 		for(int j=0;j<vectorDimension;j++){
 			fprintf(output, "%f ", data.at(i).at(j));
