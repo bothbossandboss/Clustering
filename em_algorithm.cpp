@@ -1,13 +1,16 @@
 /**
  * EMアルゴリズムを実装
- * まず、正規分布に独立に従う2次元ベクトルを作る。
+ * サンプルデータとして、正規分布に独立に従う多次元ベクトルをファイルから読み込む。
  * これをEMアルゴリズムを用いて、適切にクラスタリングする。
- * データはvector<double>で表現した方が発展させやすいか。
+ * データはvector<double>で表現。
  * データ列はvector< vector<double> >で表現。
- * 生成したデータ列を2つの正規分布の混合で表す。
+ * 生成したデータ列を標準入力で指定した数の正規分布の混合で表す。
  * その正規分布の平均と標準偏差を推定する。
- * 推定すべきパラメータthetaは、平均と標準偏差とクラスタ確率の組(mu1, sigma1, pC1)と(mu2, sigma2, pC2)
- * 初期値はランダムに決定する。
+ * 推定すべきパラメータthetaは、平均と標準偏差とクラスタ確率の組(mu, sigma, P(c))
+ * 初期値は以下のように決定する。
+ * mu : sigmaの各行を採用。sigmaの大きさ(データの次元)以上のクラスタにはランダムに2つ選んだsigmaの行を足したものを採用。
+ * sigma : 全データを一つのガウス分布として捉えた時の分散共分散行列を採用。
+ * P(c) : 全てのクラスタに等確率で割り振る。
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,7 +87,6 @@ vector<double> solveGaussElimination(vector< vector<double> > &L, vector<double>
 /**
  * クラスタcからデータxが出力される確率P(x|c)
  * 正規分布であると仮定
- * 以下の式は間違っている。(2015/6/19時点)
  */
 double pxGivenC(vector<double> &x, vector<double> &mu, vector< vector<double> > &sigma){
 	int N = x.size();
@@ -152,9 +154,8 @@ int main(int argc, char *argv[]){
 
 	/**
 	 * EMアルゴリズムでパラメータを推定
-	 * 今回2次元データなので、正規分布の確率に分散共分散行列が出てくることに注意。
-	 * GMMの混合数は2。
 	 */
+	//初期値の準備のため、全体を一つのガウス分布として捉える。
 	vector<double> uniqMu = vector<double>(vectorDimension, 0.0);
 	vector< vector<double> > uniqSigma;
 	uniqSigma = vector< vector<double> >(vectorDimension, vector<double>(vectorDimension, 0.0));
@@ -180,7 +181,7 @@ int main(int argc, char *argv[]){
 			uniqSigma.at(k).at(l) /= data.size();
 		}
 	}
-	//パラメータ
+	//パラメータの初期設定
 	vector< vector<double> > mu;
 	mu = vector< vector<double> >(gmmNum, vector<double>(vectorDimension, 0.0));
 	vector< vector< vector<double> > > sigma;
@@ -197,11 +198,11 @@ int main(int argc, char *argv[]){
 			mu.at(i) = uniqSigma.at(i);
 		}
 		sigma.at(i) = uniqSigma;
-		pc[i] = 1.0 / (double)gmmNum; //初期値は当確率。
+		pc[i] = 1.0 / (double)gmmNum;
 	}
-	//初期値を出力
 	double Q = 0.0;
 	int turn = 0;
+	//計算開始
 	printf("\ncaluculating...\n");
 	while(1){
 		//vectorであるpcGivenXのサイズはデータ数分。
