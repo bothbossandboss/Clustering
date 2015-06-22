@@ -1,8 +1,7 @@
 /**
  * 多次元データをk-meansクラスタリングで分類する。
- * まずは2次元データを扱う。
  * 多次元ガウス分布(共分散=0)から出力された正解のデータをクラスタリングすることを考える。
- * k = 2 (2つのクラスタに分類)とする。
+ * データのベクトルの次元とクラスタ数は標準入力から指定する。
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,7 +90,6 @@ int main(int argc, char *argv[]){
 	/**
 	 * データ準備
 	 */
-	//vectorDimension に置換まだ。後でやること。
 	char inputName[128];
 	int vectorDimension, clusterNum;
 	FILE *input, *output1, *output2;
@@ -132,9 +130,6 @@ int main(int argc, char *argv[]){
 	 * クラスタリング
 	 */
 	srand((unsigned int)time(NULL));
-//	vector< vector<double> > *previousCluster;
-//	previousCluster = (vector< vector<double> > *)malloc(sizeof(vector< vector<double> >) * clusterNum);
-//	vector<double> *mu = (vector<double> *)malloc(sizeof(vector<double>) * clusterNum);
 	vector< vector< vector<double> > > previousCluster;
 	vector< vector<double> > mu;
 	//とりあえず初期値はランダムに選択。
@@ -148,7 +143,7 @@ int main(int argc, char *argv[]){
 	bool flag = true;
 	int turn = 0;
 	while(flag){
-		printf("turn = %d\n", turn++);
+		if(turn % 10 == 0) printf("turn = %d\n", turn++);
 		//クラスタを更新
 		vector< vector< vector<double> > > nextCluster;
 		for(int l=0;l<clusterNum;l++){
