@@ -15,8 +15,6 @@
 
 #define OUTPUT1 "result/cluster1_k_means.dat"
 #define OUTPUT2 "result/cluster2_k_means.dat"
-#define VECTOR_DIMENSION 2
-#define K 2
 
 using namespace std;
 
@@ -41,7 +39,7 @@ bool isEqual(vector< vector<double> > previous, vector< vector<double> > next){
 	sort(previous.begin(), previous.end());
 	sort(next.begin(), next.end());
 	for(int i=0;i<previous.size();i++){
-		for(int j=0;j<VECTOR_DIMENSION;j++){
+		for(int j=0;j<previous.at(i).size();j++){
 			if(previous.at(i).at(j) != next.at(i).at(j)) return false;
 		}
 	}
@@ -53,17 +51,19 @@ bool isEqual(vector< vector<double> > previous, vector< vector<double> > next){
  * nextClusterは空のまま渡す。
  * dataとmuは値が既に入っている。
  */
-void kMeans(vector< vector<double> > &data, vector< vector<double> > nextCluster[K], vector<double> mu[K]){
+void kMeans(vector< vector<double> > &data, vector<vector<vector<double> > > &nextCluster, vector<vector<double> > &mu){
+	int clusterSize = (int)nextCluster.size();
+	int vectorSize = data.at(0).size();
 	//データを分類
-	double sim[K];
+	double sim[clusterSize];
 	for(int i=0;i<data.size();i++){
 		//各クラスタとの類似度
-		for(int l=0;l<K;l++){
+		for(int l=0;l<clusterSize;l++){
 			sim[l] = elementSimilarity(data.at(i), mu[l]);
 		}
 		int belongCluster;
 		double max = -10.0;
-		for(int l=0;l<K;l++){
+		for(int l=0;l<clusterSize;l++){
 			if(max < sim[l]){
 				max = sim[l];
 				belongCluster = l;
@@ -72,14 +72,15 @@ void kMeans(vector< vector<double> > &data, vector< vector<double> > nextCluster
 		nextCluster[belongCluster].push_back(data.at(i));
 	}
 	//各クラスタの平均ベクトルの更新
-	for(int l=0;l<K;l++){
-		double  sum[VECTOR_DIMENSION] = {0.0};
+	for(int l=0;l<clusterSize;l++){
+		double  sum[vectorSize];
+		for(int j=0;j<vectorSize;j++) sum[j] = 0.0;
 		for(int i=0;i<nextCluster[l].size();i++){
-			for(int j=0;j<VECTOR_DIMENSION;j++){
+			for(int j=0;j<vectorSize;j++){
 				sum[j] += nextCluster[l].at(i).at(j);
 			}
 		}
-		for(int j=0;j<VECTOR_DIMENSION;j++){
+		for(int j=0;j<vectorSize;j++){
 			sum[j] /= (double)nextCluster[l].size();
 			mu[l].at(j) = sum[j];
 		}
@@ -90,10 +91,16 @@ int main(int argc, char *argv[]){
 	/**
 	 * データ準備
 	 */
+	//vectorDimension に置換まだ。後でやること。
 	char inputName[128];
+	int vectorDimension, clusterNum;
 	FILE *input, *output1, *output2;
 	cout << "input file name : ";
 	cin >> inputName;
+	cout << "vector dimension = ";
+	cin >> vectorDimension;
+	cout << "cluster num = ";
+	cin >> clusterNum;
 	if( (input = fopen(inputName, "r")) == NULL ){
 		perror("open input file");
 		return -1;
@@ -104,12 +111,19 @@ int main(int argc, char *argv[]){
 	}
 	//ファイルから読み取る。
 	vector< vector<double> > data;
-	double buf[VECTOR_DIMENSION];
-	while( fscanf(input,"%lf %lf", &buf[0], &buf[1]) != EOF ){	//ファイルが終わるまで読み込む
-		vector<double> v(VECTOR_DIMENSION);
-		for(int i=0;i<VECTOR_DIMENSION;i++){
-			v.at(i) = buf[i];
+	double buf;
+	int dim = 0;
+	vector<double> v(vectorDimension);
+	while( fscanf(input, "%lf", &buf) != EOF ){	//ファイルが終わるまで読み込む。
+		if(dim == vectorDimension){
+			data.push_back(v);
+			dim = 0;
+			v = vector<double>(vectorDimension);
 		}
+		v.at(dim) = buf;
+		dim++;
+	}
+	if(dim == vectorDimension){ //最後の行だけが上記whileループで追加されないので。
 		data.push_back(v);
 	}
 	printf("data size = %d\n", (int)data.size());
@@ -118,12 +132,17 @@ int main(int argc, char *argv[]){
 	 * クラスタリング
 	 */
 	srand((unsigned int)time(NULL));
-	vector< vector<double> > previousCluster[K];
-	vector<double> mu[K];
+//	vector< vector<double> > *previousCluster;
+//	previousCluster = (vector< vector<double> > *)malloc(sizeof(vector< vector<double> >) * clusterNum);
+//	vector<double> *mu = (vector<double> *)malloc(sizeof(vector<double>) * clusterNum);
+	vector< vector< vector<double> > > previousCluster;
+	vector< vector<double> > mu;
 	//とりあえず初期値はランダムに選択。
-	for(int l=0;l<K;l++){
+	for(int l=0;l<clusterNum;l++){
 		int tmp = rand() % (int)data.size();
-		mu[l] = data.at(tmp);
+		mu.push_back(data.at(tmp));
+		vector< vector<double> > v;
+		previousCluster.push_back(v);
 	}
 	kMeans(data, previousCluster, mu);
 	bool flag = true;
@@ -131,38 +150,42 @@ int main(int argc, char *argv[]){
 	while(flag){
 		printf("turn = %d\n", turn++);
 		//クラスタを更新
-		vector< vector<double> > nextCluster[K];
+		vector< vector< vector<double> > > nextCluster;
+		for(int l=0;l<clusterNum;l++){
+			vector< vector<double> > v;
+			nextCluster.push_back(v);
+		}
 		kMeans(data, nextCluster, mu);
 		//クラスタが一致しているか否か
 		flag = false;
-		for(int i=0;i<K;i++){
+		for(int i=0;i<clusterNum;i++){
 			for(int j=0;j<i;j++){
 				if(i == j) continue;
 				if(!isEqual(previousCluster[i], nextCluster[j])) flag = true;
 			}
 		}
-		for(int l=0;l<K;l++){
+		for(int l=0;l<clusterNum;l++){
 			previousCluster[l] = nextCluster[l];
 		}
 	}
 	/**
 	 * 結果出力
 	 */
-	for(int l=0;l<K;l++){
+	for(int l=0;l<clusterNum;l++){
 		printf("cluster%d : mu = (", l);
-		for(int j=0;j<VECTOR_DIMENSION;j++){
+		for(int j=0;j<vectorDimension;j++){
 			printf("%f ", mu[l].at(j));
 		}
 		printf(")\n");
 	}
 	for(int i=0;i<previousCluster[0].size();i++){
-		for (int j=0;j<VECTOR_DIMENSION;++j){
+		for (int j=0;j<vectorDimension;++j){
 			fprintf(output1, "%f ", previousCluster[0].at(i).at(j));
 		}
 		fprintf(output1, "\n");
 	}
 	for(int i=0;i<previousCluster[1].size();i++){
-		for (int j=0;j<VECTOR_DIMENSION;++j){
+		for (int j=0;j<vectorDimension;++j){
 			fprintf(output2, "%f ", previousCluster[1].at(i).at(j));
 		}
 		fprintf(output2, "\n");
