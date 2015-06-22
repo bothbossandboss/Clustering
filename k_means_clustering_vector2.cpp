@@ -11,9 +11,11 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <cstdlib>
+#include <sstream>
+#include <iomanip>
 
-#define OUTPUT1 "result/cluster1_k_means.dat"
-#define OUTPUT2 "result/cluster2_k_means.dat"
+#define RESULT_DIR "result/"
 
 using namespace std;
 
@@ -92,7 +94,7 @@ int main(int argc, char *argv[]){
 	 */
 	char inputName[128];
 	int vectorDimension, clusterNum;
-	FILE *input, *output1, *output2;
+	FILE *input;
 	cout << "input file name : ";
 	cin >> inputName;
 	cout << "vector dimension = ";
@@ -101,10 +103,6 @@ int main(int argc, char *argv[]){
 	cin >> clusterNum;
 	if( (input = fopen(inputName, "r")) == NULL ){
 		perror("open input file");
-		return -1;
-	}
-	if( ( (output1 = fopen(OUTPUT1, "w")) == NULL )||( (output2 = fopen(OUTPUT2, "w")) == NULL ) ){
-		perror("open output file");
 		return -1;
 	}
 	//ファイルから読み取る。
@@ -125,6 +123,7 @@ int main(int argc, char *argv[]){
 		data.push_back(v);
 	}
 	printf("data size = %d\n", (int)data.size());
+	fclose(input);
 
 	/**
 	 * クラスタリング
@@ -173,21 +172,24 @@ int main(int argc, char *argv[]){
 		}
 		printf(")\n");
 	}
-	for(int i=0;i<previousCluster[0].size();i++){
-		for (int j=0;j<vectorDimension;++j){
-			fprintf(output1, "%f ", previousCluster[0].at(i).at(j));
-		}
-		fprintf(output1, "\n");
-	}
-	for(int i=0;i<previousCluster[1].size();i++){
-		for (int j=0;j<vectorDimension;++j){
-			fprintf(output2, "%f ", previousCluster[1].at(i).at(j));
-		}
-		fprintf(output2, "\n");
-	}
 
-	fclose(input);
-	fclose(output1);
-	fclose(output2);
+	for(int c=0;c<clusterNum;c++){
+		ostringstream oss;
+		oss << RESULT_DIR << "cluster" << c << ".dat";
+		string str = oss.str();
+		char *outputName = (char *)str.c_str();
+		FILE *output;
+		if( (output = fopen(outputName, "w")) == NULL ){
+			perror("open output file");
+			return -1;
+		}
+		for(int i=0;i<previousCluster[c].size();i++){
+			for (int j=0;j<vectorDimension;++j){
+				fprintf(output, "%f ", previousCluster[c].at(i).at(j));
+			}
+			fprintf(output, "\n");
+		}
+		fclose(output);
+	}
 	return 0;
 }
