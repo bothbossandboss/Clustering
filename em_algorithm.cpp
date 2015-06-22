@@ -140,15 +140,13 @@ int main(int argc, char *argv[]){
 		if(dim == vectorDimension){
 			data.push_back(v);
 			dim = 0;
+			v = vector<double>(vectorDimension);
 		}
 		v.at(dim) = buf;
 		dim++;
 	}
-	for(int i=(int)data.size()-10;i<(int)data.size();i++){
-		for(int j=0;j<vectorDimension;j++){
-			printf("%4.2f ", data.at(i).at(j));
-		}
-		printf("\n");
+	if(dim == vectorDimension){ //最後の行だけが上記whileループで追加されないので。
+		data.push_back(v);
 	}
 	printf("data size = %d\n", (int)data.size());
 
